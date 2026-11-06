@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Hero - Juego de Ritmo Autogenerado</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+
+<body>
+
+    <!-- Contenedor del video de fondo con capas separadas -->
+    <div id="video-container">
+        <video id="bg-video" playsinline></video>
+        <div id="video-overlay"></div>
+    </div>
+
+    <div id="app">
+        <!-- Header / Panel Superior -->
+        <header class="game-header">
+            <div class="brand">
+                <h1>RHYTHM<span>HERO</span></h1>
+            </div>
+
+            <div class="controls-panel">
+                <label class="file-btn" for="audio-file-input">
+                    📁 Subir Canción / Video
+                    <input type="file" id="audio-file-input" accept="audio/*,video/*">
+                </label>
+
+                <div class="setting-group">
+                    <label for="difficulty-select">Dificultad:</label>
+                    <select id="difficulty-select">
+                        <option value="easy">Fácil (Máx 1 nota)</option>
+                        <option value="normal" selected>Normal (1-2 notas)</option>
+                        <option value="hard">Difícil (Rápido)</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label for="volume-slider">🔊 Volumen:</label>
+                    <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8">
+                </div>
+
+                <div class="setting-group">
+                    <label for="opacity-slider">Oscurecer Fondo:</label>
+                    <input type="range" id="opacity-slider" min="0" max="0.95" step="0.05" value="0.6">
+                </div>
+            </div>
+        </header>
+
+        <!-- Zona Principal del Juego -->
+        <main class="game-area">
+            <!-- Panel Izquierdo: Puntuación -->
+            <aside class="side-panel left">
+                <div class="score-card">
+                    <span class="label">PUNTOS</span>
+                    <span id="score-display">000000</span>
+                </div>
+                <div class="score-card">
+                    <span class="label">MULTIPLICADOR</span>
+                    <span id="multiplier-display">x1</span>
+                </div>
+                <div class="score-card">
+                    <span class="label">COMBO</span>
+                    <span id="combo-display">0</span>
+                </div>
+            </aside>
+
+            <!-- Pistas de Juego (4 Columns) -->
+            <div class="highway-container">
+                <div id="countdown-display" class="countdown-display"></div>
+                <div id="hit-feedback" class="hit-feedback"></div>
+
+                <!-- Menú Modal de Pausa -->
+                <div id="pause-modal" class="pause-modal hidden">
+                    <h2>JUEGO PAUSADO</h2>
+                    <div class="modal-buttons">
+                        <button id="resume-btn" class="action-btn">▶ REANUDAR</button>
+                        <button id="restart-btn" class="action-btn secondary">🔄 REINICIAR CANCIÓN</button>
+                        <label class="action-btn secondary file-modal-btn" for="audio-file-input-modal">
+                            📂 CAMBIAR CANCIÓN
+                            <input type="file" id="audio-file-input-modal" accept="audio/*,video/*">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="highway">
+                    <div class="track" data-track="0">
+                        <div class="track-line"></div>
+                        <div class="hit-zone" id="key-0"><span class="key-bind">D</span></div>
+                    </div>
+                    <div class="track" data-track="1">
+                        <div class="track-line"></div>
+                        <div class="hit-zone" id="key-1"><span class="key-bind">F</span></div>
+                    </div>
+                    <div class="track" data-track="2">
+                        <div class="track-line"></div>
+                        <div class="hit-zone" id="key-2"><span class="key-bind">J</span></div>
+                    </div>
+                    <div class="track" data-track="3">
+                        <div class="track-line"></div>
+                        <div class="hit-zone" id="key-3"><span class="key-bind">K</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Derecho: Estado de Reproducción -->
+            <aside class="side-panel right">
+                <div class="track-info">
+                    <span class="label">PISTA AUDIOVISUAL</span>
+                    <p id="track-name">Ningún archivo subido</p>
+                </div>
+
+                <button id="start-btn" class="action-btn">¡INICIAR JUEGO!</button>
+                <button id="pause-btn" class="action-btn secondary" disabled>PAUSAR</button>
+
+                <div class="instructions">
+                    <h3>Controles</h3>
+                    <p>Usa las teclas <strong>D, F, J, K</strong> o toca las casillas inferiores en pantalla.</p>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="static/js/script.js"></script>
+</body>
+
+</html>

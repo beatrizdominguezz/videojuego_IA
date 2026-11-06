@@ -1,0 +1,421 @@
+:root {
+    --bg-color: #0d0e15;
+    --panel-bg: rgba(18, 20, 32, 0.85);
+    --border-color: rgba(255, 255, 255, 0.15);
+    --accent-pink: #ff2a75;
+    --accent-blue: #00f0ff;
+    --accent-purple: #9d4edd;
+    --accent-yellow: #ffb703;
+    --text-main: #ffffff;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: var(--font-family);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Fondo audiovisual y Capa Oscura (overlay) */
+#video-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    background-color: #050508;
+}
+
+#bg-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+}
+
+#video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    opacity: 0.6;
+    z-index: 1;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+}
+
+/* Interfaz Principal */
+#app {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 15px;
+}
+
+/* Header */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    padding: 12px 25px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 15px;
+}
+
+.brand h1 {
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+}
+
+.brand span {
+    color: var(--accent-pink);
+}
+
+.controls-panel {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.file-btn,
+.file-modal-btn {
+    background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: transform 0.1s;
+    display: inline-block;
+    text-align: center;
+}
+
+.file-btn:hover,
+.file-modal-btn:hover {
+    transform: scale(1.05);
+}
+
+.file-btn input,
+.file-modal-btn input {
+    display: none;
+}
+
+.setting-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.setting-group select,
+.setting-group input {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 1px solid var(--border-color);
+    padding: 5px 8px;
+    border-radius: 6px;
+}
+
+.setting-group input[type="range"] {
+    width: 90px;
+}
+
+/* Área de Juego Principal */
+.game-area {
+    display: flex;
+    flex: 1;
+    gap: 20px;
+    justify-content: space-between;
+}
+
+.side-panel {
+    width: 220px;
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.score-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent-blue);
+}
+
+.score-card .label {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-bottom: 4px;
+}
+
+.score-card span:last-child {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+}
+
+/* Pistas (Highway) */
+.highway-container {
+    flex: 1;
+    max-width: 450px;
+    position: relative;
+    margin: 0 auto;
+}
+
+/* Menú Modal de Pausa */
+.pause-modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 20, 0.92);
+    backdrop-filter: blur(8px);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    border-left: 3px solid var(--accent-blue);
+    border-right: 3px solid var(--accent-blue);
+}
+
+.pause-modal.hidden {
+    display: none;
+}
+
+.pause-modal h2 {
+    font-size: 2rem;
+    letter-spacing: 3px;
+    color: var(--accent-blue);
+    text-shadow: 0 0 10px var(--accent-blue);
+}
+
+.modal-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 80%;
+}
+
+/* Cuenta Regresiva */
+.countdown-display {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5.5rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 20px var(--accent-blue), 0 0 40px var(--accent-pink);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 30;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.countdown-display.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+}
+
+.hit-feedback {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s, transform 0.15s;
+    z-index: 20;
+}
+
+.hit-feedback.show {
+    opacity: 1;
+    transform: translate(-50%, -70%) scale(1.2);
+}
+
+.hit-feedback.perfect {
+    color: var(--accent-yellow);
+}
+
+.hit-feedback.great {
+    color: var(--accent-blue);
+}
+
+.hit-feedback.miss {
+    color: var(--accent-pink);
+}
+
+.highway {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    background: rgba(10, 10, 20, 0.75);
+    border-left: 3px solid var(--accent-blue);
+    border-right: 3px solid var(--accent-blue);
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.track {
+    flex: 1;
+    position: relative;
+    border-right: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.track:last-child {
+    border-right: none;
+}
+
+.hit-zone {
+    position: absolute;
+    bottom: 20px;
+    left: 5%;
+    width: 90%;
+    height: 60px;
+    border: 3px solid #fff;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    transition: background 0.1s, transform 0.05s;
+}
+
+.track[data-track="0"] .hit-zone {
+    border-color: var(--accent-pink);
+}
+
+.track[data-track="1"] .hit-zone {
+    border-color: var(--accent-blue);
+}
+
+.track[data-track="2"] .hit-zone {
+    border-color: var(--accent-purple);
+}
+
+.track[data-track="3"] .hit-zone {
+    border-color: var(--accent-yellow);
+}
+
+.hit-zone.active {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(0.95);
+}
+
+.key-bind {
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+/* Estilos de las Notas */
+.note {
+    position: absolute;
+    width: 86%;
+    left: 7%;
+    height: 25px;
+    border-radius: 6px;
+    box-shadow: 0 0 14px currentColor;
+    z-index: 10;
+}
+
+.note.track-0 {
+    background: var(--accent-pink);
+    color: var(--accent-pink);
+}
+
+.note.track-1 {
+    background: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.note.track-2 {
+    background: var(--accent-purple);
+    color: var(--accent-purple);
+}
+
+.note.track-3 {
+    background: var(--accent-yellow);
+    color: var(--accent-yellow);
+}
+
+/* Botones e Instrucciones */
+.action-btn {
+    background: var(--accent-blue);
+    color: #000;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.action-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+    color: white;
+}
+
+.action-btn:hover {
+    opacity: 0.9;
+}
+
+.action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.track-info p {
+    font-size: 0.9rem;
+    word-break: break-all;
+    margin-top: 5px;
+    color: var(--accent-blue);
+}
+
+.instructions h3 {
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.instructions p {
+    font-size: 0.8rem;
+    color: #aaa;
+    line-height: 1.3;
+}
