@@ -10,9 +10,10 @@
 
 <body>
 
-    <!-- Contenedor del video de fondo con capas separadas -->
+    <!-- Contenedor audiovisual -->
     <div id="video-container">
-        <video id="bg-video" playsinline></video>
+        <video id="bg-video" playsinline crossorigin="anonymous"></video>
+        <iframe id="youtube-frame" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
         <div id="video-overlay"></div>
     </div>
 
@@ -20,33 +21,21 @@
         <!-- Header / Panel Superior -->
         <header class="game-header">
             <div class="brand">
-                <h1>Riffix<span>Rhythm</span></h1>
+                <h1>RHYTHM<span>HERO</span></h1>
             </div>
 
             <div class="controls-panel">
                 <label class="file-btn" for="audio-file-input">
-                    📁 Subir Canción / Video
+                    📁 Subir Archivo
                     <input type="file" id="audio-file-input" accept="audio/*,video/*">
                 </label>
 
-                <div class="setting-group">
-                    <label for="difficulty-select">Dificultad:</label>
-                    <select id="difficulty-select">
-                        <option value="easy">Fácil (Máx 1 nota)</option>
-                        <option value="normal" selected>Normal (1-2 notas)</option>
-                        <option value="hard">Difícil (Rápido)</option>
-                    </select>
+                <div class="url-input-container">
+                    <input type="text" id="url-input" placeholder="URL (.mp4, .mp3 o YouTube)...">
+                    <button id="load-url-btn" class="action-btn small">Cargar URL</button>
                 </div>
 
-                <div class="setting-group">
-                    <label for="volume-slider">🔊 Volumen:</label>
-                    <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8">
-                </div>
-
-                <div class="setting-group">
-                    <label for="opacity-slider">Oscurecer Fondo:</label>
-                    <input type="range" id="opacity-slider" min="0" max="0.95" step="0.05" value="0.6">
-                </div>
+                <button id="settings-btn" class="icon-btn" title="Configuración">⚙️ Configuración</button>
             </div>
         </header>
 
@@ -68,10 +57,80 @@
                 </div>
             </aside>
 
-            <!-- Pistas de Juego (4 Columns) -->
+            <!-- Pistas de Juego -->
             <div class="highway-container">
+                <!-- Indicador de Análisis -->
+                <div id="analyzing-display" class="analyzing-display hidden">
+                    <div class="spinner"></div>
+                    <p>DETECCION DE VOCES, MELODÍAS Y BEATS...</p>
+                </div>
+
                 <div id="countdown-display" class="countdown-display"></div>
                 <div id="hit-feedback" class="hit-feedback"></div>
+
+                <!-- Modal Pre-Juego: Densidad de Notas -->
+                <div id="density-modal" class="pause-modal hidden">
+                    <h2>🎯 DENSIDAD DE NOTAS</h2>
+                    <p class="modal-subtitle">¿Cuántas notas deseas que genere la canción?</p>
+
+                    <div class="density-options">
+                        <button class="density-btn" data-density="low">
+                            <span>🟢 POCAS</span>
+                            <small>Ideal para partidas relajadas y melodías limpias.</small>
+                        </button>
+                        <button class="density-btn active" data-density="medium">
+                            <span>🟡 MEDIANA CANTIDAD</span>
+                            <small>Equilibrio perfecto entre percusión y notas sostenidas.</small>
+                        </button>
+                        <button class="density-btn" data-density="high">
+                            <span>🔴 MUCHAS</span>
+                            <small>Mayor cantidad de notas siguiendo cada instrumento.</small>
+                        </button>
+                    </div>
+
+                    <button id="confirm-density-btn" class="action-btn">¡COMENZAR PARTIDA!</button>
+                </div>
+
+                <!-- Modal de Configuración -->
+                <div id="settings-modal" class="pause-modal hidden">
+                    <h2>⚙️ CONFIGURACIÓN</h2>
+                    <div class="settings-grid">
+                        <div class="setting-group-modal">
+                            <label for="controls-select">Controles de Juego:</label>
+                            <select id="controls-select">
+                                <option value="arrows" selected>Flechas (← ↑ ↓ →)</option>
+                                <option value="wasd">WASD (A W S D)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-group-modal">
+                            <label for="difficulty-select">Dificultad:</label>
+                            <select id="difficulty-select">
+                                <option value="easy">Fácil (Velocidad Cómoda)</option>
+                                <option value="normal" selected>Normal (Velocidad Estándar)</option>
+                                <option value="hard">Difícil (Más Rápido)</option>
+                                <option value="insane">🔥 Insano (Velocidad Alta)</option>
+                                <option value="god">⚡ Dios (Velocidad Extrema)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-group-modal">
+                            <label for="volume-slider">🔊 Volumen de la Música:</label>
+                            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8">
+                        </div>
+
+                        <div class="setting-group-modal">
+                            <label for="hitsound-volume-slider">🔔 Volumen de Hitsound (Notas):</label>
+                            <input type="range" id="hitsound-volume-slider" min="0" max="1" step="0.05" value="0.7">
+                        </div>
+
+                        <div class="setting-group-modal">
+                            <label for="opacity-slider">Oscurecer Video de Fondo:</label>
+                            <input type="range" id="opacity-slider" min="0" max="0.95" step="0.05" value="0.6">
+                        </div>
+                    </div>
+                    <button id="close-settings-btn" class="action-btn">GUARDAR Y CERRAR</button>
+                </div>
 
                 <!-- Menú Modal de Pausa -->
                 <div id="pause-modal" class="pause-modal hidden">
@@ -80,8 +139,24 @@
                         <button id="resume-btn" class="action-btn">▶ REANUDAR</button>
                         <button id="restart-btn" class="action-btn secondary">🔄 REINICIAR CANCIÓN</button>
                         <label class="action-btn secondary file-modal-btn" for="audio-file-input-modal">
-                            📂 CAMBIAR CANCIÓN
+                            📂 CAMBIAR ARCHIVO
                             <input type="file" id="audio-file-input-modal" accept="audio/*,video/*">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Pantalla de Juego Terminado -->
+                <div id="game-over-modal" class="pause-modal hidden">
+                    <h2 class="title-finish">¡JUEGO TERMINADO!</h2>
+                    <div class="final-score-box">
+                        <span class="label">PUNTAJE FINAL</span>
+                        <h3 id="final-score-display">000000</h3>
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="replay-btn" class="action-btn">🔄 VOLVER A JUGAR</button>
+                        <label class="action-btn secondary file-modal-btn" for="audio-file-input-finish">
+                            📂 ELEGIR OTRA CANCIÓN
+                            <input type="file" id="audio-file-input-finish" accept="audio/*,video/*">
                         </label>
                     </div>
                 </div>
@@ -89,24 +164,24 @@
                 <div class="highway">
                     <div class="track" data-track="0">
                         <div class="track-line"></div>
-                        <div class="hit-zone" id="key-0"><span class="key-bind">D</span></div>
+                        <div class="hit-zone" id="key-0"><span class="key-bind">←</span></div>
                     </div>
                     <div class="track" data-track="1">
                         <div class="track-line"></div>
-                        <div class="hit-zone" id="key-1"><span class="key-bind">F</span></div>
+                        <div class="hit-zone" id="key-1"><span class="key-bind">↑</span></div>
                     </div>
                     <div class="track" data-track="2">
                         <div class="track-line"></div>
-                        <div class="hit-zone" id="key-2"><span class="key-bind">J</span></div>
+                        <div class="hit-zone" id="key-2"><span class="key-bind">↓</span></div>
                     </div>
                     <div class="track" data-track="3">
                         <div class="track-line"></div>
-                        <div class="hit-zone" id="key-3"><span class="key-bind">K</span></div>
+                        <div class="hit-zone" id="key-3"><span class="key-bind">→</span></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Panel Derecho: Estado de Reproducción -->
+            <!-- Panel Derecho -->
             <aside class="side-panel right">
                 <div class="track-info">
                     <span class="label">PISTA AUDIOVISUAL</span>
@@ -118,7 +193,8 @@
 
                 <div class="instructions">
                     <h3>Controles</h3>
-                    <p>Usa las teclas <strong>D, F, J, K</strong> o toca las casillas inferiores en pantalla.</p>
+                    <p id="controls-text">Usa las teclas <strong>←, ↑, ↓, →</strong> o toca las casillas inferiores en
+                        pantalla.</p>
                 </div>
             </aside>
         </main>
