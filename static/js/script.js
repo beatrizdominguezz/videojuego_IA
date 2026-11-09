@@ -28,6 +28,7 @@ let selectedDensity = 'medium';
 
 const activeKeys = [false, false, false, false, false, false, false, false];
 
+// ESQUEMAS DE CONTROL (INCLUYENDO MODO SIMULTÁNEO WASD + FLECHAS)
 const controlSchemes = {
     wasd: {
         keys: { 'a': 0, 'w': 1, 's': 2, 'd': 3 },
@@ -38,6 +39,16 @@ const controlSchemes = {
         keys: { 'arrowleft': 0, 'arrowup': 1, 'arrowdown': 2, 'arrowright': 3 },
         labels: ['←', '↑', '↓', '→'],
         text: 'Flechas (←, ↑, ↓, →)'
+    },
+    both: {
+        keys: {
+            'a': 0, 'arrowleft': 0,
+            'w': 1, 'arrowup': 1,
+            's': 2, 'arrowdown': 2,
+            'd': 3, 'arrowright': 3
+        },
+        labels: ['A / ←', 'W / ↑', 'S / ↓', 'D / →'],
+        text: 'WASD + Flechas Simultáneo (A/←, W/↑, S/↓, D/→)'
     }
 };
 
@@ -181,16 +192,7 @@ function applyControlLayout() {
         p1Title.classList.remove('hidden');
         finalScoreP1Label.textContent = "PUNTAJE FINAL (P1)";
 
-        if (p1SchemeVal === 'wasd') {
-            p1MultiKeys = { 'a': 0, 'w': 1, 's': 2, 'd': 3 };
-            p2MultiKeys = { 'arrowleft': 4, 'arrowup': 5, 'arrowdown': 6, 'arrowright': 7 };
-            controlsText.innerHTML = `<strong>P1:</strong> A, W, S, D | <strong>P2:</strong> ←, ↑, ↓, →`;
-
-            keyBinds[0].textContent = 'A'; keyBinds[1].textContent = 'W';
-            keyBinds[2].textContent = 'S'; keyBinds[3].textContent = 'D';
-            keyBinds[4].textContent = '←'; keyBinds[5].textContent = '↑';
-            keyBinds[6].textContent = '↓'; keyBinds[7].textContent = '→';
-        } else {
+        if (p1SchemeVal === 'arrows') {
             p1MultiKeys = { 'arrowleft': 0, 'arrowup': 1, 'arrowdown': 2, 'arrowright': 3 };
             p2MultiKeys = { 'a': 4, 'w': 5, 's': 6, 'd': 7 };
             controlsText.innerHTML = `<strong>P1:</strong> ←, ↑, ↓, → | <strong>P2:</strong> A, W, S, D`;
@@ -199,6 +201,15 @@ function applyControlLayout() {
             keyBinds[2].textContent = '↓'; keyBinds[3].textContent = '→';
             keyBinds[4].textContent = 'A'; keyBinds[5].textContent = 'W';
             keyBinds[6].textContent = 'S'; keyBinds[7].textContent = 'D';
+        } else {
+            p1MultiKeys = { 'a': 0, 'w': 1, 's': 2, 'd': 3 };
+            p2MultiKeys = { 'arrowleft': 4, 'arrowup': 5, 'arrowdown': 6, 'arrowright': 7 };
+            controlsText.innerHTML = `<strong>P1:</strong> A, W, S, D | <strong>P2:</strong> ←, ↑, ↓, →`;
+
+            keyBinds[0].textContent = 'A'; keyBinds[1].textContent = 'W';
+            keyBinds[2].textContent = 'S'; keyBinds[3].textContent = 'D';
+            keyBinds[4].textContent = '←'; keyBinds[5].textContent = '↑';
+            keyBinds[6].textContent = '↓'; keyBinds[7].textContent = '→';
         }
     } else {
         highwayP2.classList.add('hidden');
@@ -207,7 +218,7 @@ function applyControlLayout() {
         p1Title.classList.add('hidden');
         finalScoreP1Label.textContent = "PUNTAJE FINAL";
 
-        currentScheme = controlSchemes[p1SchemeVal];
+        currentScheme = controlSchemes[p1SchemeVal] || controlSchemes.wasd;
         controlsText.innerHTML = `Usa las teclas <strong>${currentScheme.text}</strong> o toca las casillas inferiores.`;
         keyBinds.slice(0, 4).forEach((bindEl, i) => bindEl.textContent = currentScheme.labels[i]);
     }
@@ -818,6 +829,7 @@ function spawnParticles(trackIndex) {
     }
 }
 
+// MANEJO DE TECLAS DUALES (WASD + FLECHAS SIMULTÁNEO)
 window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
 
