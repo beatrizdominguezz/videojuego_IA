@@ -8,11 +8,15 @@ let hitsoundAudioBuffer = null;
 let isPlaying = false;
 let isCountingDown = false;
 let isYouTubeMode = false;
-let score = 0;
-let combo = 0;
-let multiplier = 1;
+let ytPlayer = null;
+
+// Estado del juego y puntuaciones
+let isMultiplayer = false;
+let scoreP1 = 0, comboP1 = 0, multiplierP1 = 1;
+let scoreP2 = 0, comboP2 = 0, multiplierP2 = 1;
+
 let notes = [];
-let noteSpeed = 7.5; // Velocidad estándar ajustada a flujo normal agilizado
+let noteSpeed = 7.5;
 let currentFile = null;
 
 let beatmap = [];
@@ -22,33 +26,46 @@ let hitsoundVolume = 0.7;
 
 let selectedDensity = 'medium';
 
-// Registro de teclas activas para mantener notas largas
-const activeKeys = [false, false, false, false];
+const activeKeys = [false, false, false, false, false, false, false, false];
 
 const controlSchemes = {
-    arrows: {
-        keys: { 'arrowleft': 0, 'arrowup': 1, 'arrowdown': 2, 'arrowright': 3 },
-        labels: ['←', '↑', '↓', '→'],
-        text: 'Flechas (←, ↑, ↓, →)'
-    },
     wasd: {
         keys: { 'a': 0, 'w': 1, 's': 2, 'd': 3 },
         labels: ['A', 'W', 'S', 'D'],
         text: 'WASD (A, W, S, D)'
+    },
+    arrows: {
+        keys: { 'arrowleft': 0, 'arrowup': 1, 'arrowdown': 2, 'arrowright': 3 },
+        labels: ['←', '↑', '↓', '→'],
+        text: 'Flechas (←, ↑, ↓, →)'
     }
 };
 
-let currentScheme = controlSchemes.arrows;
+let currentScheme = controlSchemes.wasd;
 
-// Elementos DOM
+let p1MultiKeys = { 'a': 0, 'w': 1, 's': 2, 'd': 3 };
+let p2MultiKeys = { 'arrowleft': 4, 'arrowup': 5, 'arrowdown': 6, 'arrowright': 7 };
+
+// DOM
 const videoEl = document.getElementById('bg-video');
-const ytFrame = document.getElementById('youtube-frame');
 const overlayEl = document.getElementById('video-overlay');
 const fileInput = document.getElementById('audio-file-input');
 const fileInputModal = document.getElementById('audio-file-input-modal');
 const fileInputFinish = document.getElementById('audio-file-input-finish');
 const urlInput = document.getElementById('url-input');
 const loadUrlBtn = document.getElementById('load-url-btn');
+
+// Modales y Menús
+const modeSelectModal = document.getElementById('mode-select-modal');
+const btnModeSingle = document.getElementById('btn-mode-single');
+const btnModeMulti = document.getElementById('btn-mode-multi');
+const confirmModeBtn = document.getElementById('confirm-mode-btn');
+const gameMainArea = document.getElementById('game-main-area');
+const highwayP1 = document.getElementById('highway-p1');
+const highwayP2 = document.getElementById('highway-p2');
+const p1Title = document.getElementById('p1-title');
+const p2ScorePanel = document.getElementById('p2-score-panel');
+const changeModeBtn = document.getElementById('change-mode-btn');
 
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
@@ -72,25 +89,136 @@ const analyzingDisplay = document.getElementById('analyzing-display');
 const volumeSlider = document.getElementById('volume-slider');
 const hitsoundVolumeSlider = document.getElementById('hitsound-volume-slider');
 const opacitySlider = document.getElementById('opacity-slider');
-const scoreDisplay = document.getElementById('score-display');
-const finalScoreDisplay = document.getElementById('final-score-display');
-const comboDisplay = document.getElementById('combo-display');
-const multiplierDisplay = document.getElementById('multiplier-display');
+
+// DISPLAYS DE PUNTUACIÓN
+const scoreDisplayP1 = document.getElementById('score-display');
+const finalScoreP1Label = document.getElementById('final-score-p1-label');
+const finalScoreDisplayP1 = document.getElementById('final-score-display');
+const comboDisplayP1 = document.getElementById('combo-display');
+const multiplierDisplayP1 = document.getElementById('multiplier-display');
+
+const scoreDisplayP2 = document.getElementById('score-display-p2');
+const finalScoreDisplayP2 = document.getElementById('final-score-p2-display');
+const comboDisplayP2 = document.getElementById('combo-display-p2');
+const multiplierDisplayP2 = document.getElementById('multiplier-display-p2');
+const finalScoreP2Box = document.getElementById('final-score-p2-box');
+
 const trackNameDisplay = document.getElementById('track-name');
 const hitFeedback = document.getElementById('hit-feedback');
 const countdownDisplay = document.getElementById('countdown-display');
+
 const keyBinds = [
     document.querySelector('#key-0 .key-bind'),
     document.querySelector('#key-1 .key-bind'),
     document.querySelector('#key-2 .key-bind'),
-    document.querySelector('#key-3 .key-bind')
+    document.querySelector('#key-3 .key-bind'),
+    document.querySelector('#key-4 .key-bind'),
+    document.querySelector('#key-5 .key-bind'),
+    document.querySelector('#key-6 .key-bind'),
+    document.querySelector('#key-7 .key-bind')
 ];
+
 const tracks = [
     document.querySelector('[data-track="0"]'),
     document.querySelector('[data-track="1"]'),
     document.querySelector('[data-track="2"]'),
-    document.querySelector('[data-track="3"]')
+    document.querySelector('[data-track="3"]'),
+    document.querySelector('[data-track="4"]'),
+    document.querySelector('[data-track="5"]'),
+    document.querySelector('[data-track="6"]'),
+    document.querySelector('[data-track="7"]')
 ];
+
+// YOUTUBE PLAYER INTEGRATION
+function onYouTubeIframeAPIReady() {
+    ytPlayer = new YT.Player('youtube-player', {
+        height: '100%',
+        width: '100%',
+        playerVars: {
+            'autoplay': 0,
+            'controls': 0,
+            'rel': 0,
+            'playsinline': 1
+        },
+        events: {
+            'onStateChange': onYouTubePlayerStateChange
+        }
+    });
+}
+
+function onYouTubePlayerStateChange(event) {
+    if (event.data === 0) {
+        handleGameOver();
+    }
+}
+
+// SELECCIÓN DE MODO
+btnModeSingle.addEventListener('click', () => {
+    btnModeSingle.classList.add('active');
+    btnModeMulti.classList.remove('active');
+    isMultiplayer = false;
+});
+
+btnModeMulti.addEventListener('click', () => {
+    btnModeMulti.classList.add('active');
+    btnModeSingle.classList.remove('active');
+    isMultiplayer = true;
+});
+
+confirmModeBtn.addEventListener('click', () => {
+    modeSelectModal.classList.add('hidden');
+    gameMainArea.classList.remove('hidden');
+    applyControlLayout();
+});
+
+function applyControlLayout() {
+    const p1SchemeVal = controlsSelect.value;
+
+    if (isMultiplayer) {
+        highwayP2.classList.remove('hidden');
+        p2ScorePanel.classList.remove('hidden');
+        finalScoreP2Box.classList.remove('hidden');
+        p1Title.classList.remove('hidden');
+        finalScoreP1Label.textContent = "PUNTAJE FINAL (P1)";
+
+        if (p1SchemeVal === 'wasd') {
+            p1MultiKeys = { 'a': 0, 'w': 1, 's': 2, 'd': 3 };
+            p2MultiKeys = { 'arrowleft': 4, 'arrowup': 5, 'arrowdown': 6, 'arrowright': 7 };
+            controlsText.innerHTML = `<strong>P1:</strong> A, W, S, D | <strong>P2:</strong> ←, ↑, ↓, →`;
+
+            keyBinds[0].textContent = 'A'; keyBinds[1].textContent = 'W';
+            keyBinds[2].textContent = 'S'; keyBinds[3].textContent = 'D';
+            keyBinds[4].textContent = '←'; keyBinds[5].textContent = '↑';
+            keyBinds[6].textContent = '↓'; keyBinds[7].textContent = '→';
+        } else {
+            p1MultiKeys = { 'arrowleft': 0, 'arrowup': 1, 'arrowdown': 2, 'arrowright': 3 };
+            p2MultiKeys = { 'a': 4, 'w': 5, 's': 6, 'd': 7 };
+            controlsText.innerHTML = `<strong>P1:</strong> ←, ↑, ↓, → | <strong>P2:</strong> A, W, S, D`;
+
+            keyBinds[0].textContent = '←'; keyBinds[1].textContent = '↑';
+            keyBinds[2].textContent = '↓'; keyBinds[3].textContent = '→';
+            keyBinds[4].textContent = 'A'; keyBinds[5].textContent = 'W';
+            keyBinds[6].textContent = 'S'; keyBinds[7].textContent = 'D';
+        }
+    } else {
+        highwayP2.classList.add('hidden');
+        p2ScorePanel.classList.add('hidden');
+        finalScoreP2Box.classList.add('hidden');
+        p1Title.classList.add('hidden');
+        finalScoreP1Label.textContent = "PUNTAJE FINAL";
+
+        currentScheme = controlSchemes[p1SchemeVal];
+        controlsText.innerHTML = `Usa las teclas <strong>${currentScheme.text}</strong> o toca las casillas inferiores.`;
+        keyBinds.slice(0, 4).forEach((bindEl, i) => bindEl.textContent = currentScheme.labels[i]);
+    }
+}
+
+changeModeBtn.addEventListener('click', () => {
+    pauseModal.classList.add('hidden');
+    resetGameState();
+    gameMainArea.classList.add('hidden');
+    modeSelectModal.classList.remove('hidden');
+});
 
 function initAudioEngine() {
     if (!audioCtx) {
@@ -154,30 +282,41 @@ settingsBtn.addEventListener('click', () => {
 
 closeSettingsBtn.addEventListener('click', () => {
     settingsModal.classList.add('hidden');
+    applyControlLayout();
 });
 
 videoEl.addEventListener('ended', handleGameOver);
 
 function handleGameOver() {
     isPlaying = false;
-    finalScoreDisplay.textContent = score.toString().padStart(6, '0');
+
+    if (isYouTubeMode && ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+        ytPlayer.pauseVideo();
+    } else {
+        videoEl.pause();
+    }
+
+    notes.forEach(note => note.element.remove());
+    notes = [];
+
+    finalScoreDisplayP1.textContent = scoreP1.toString().padStart(6, '0');
+    if (isMultiplayer) {
+        finalScoreDisplayP2.textContent = scoreP2.toString().padStart(6, '0');
+    }
     gameOverModal.classList.remove('hidden');
     startBtn.disabled = false;
     pauseBtn.disabled = true;
 }
 
-controlsSelect.addEventListener('change', (e) => {
-    currentScheme = controlSchemes[e.target.value];
-    keyBinds.forEach((bindEl, i) => bindEl.textContent = currentScheme.labels[i]);
-    controlsText.innerHTML = `Usa las teclas <strong>${currentScheme.text}</strong> o toca las casillas inferiores.`;
+controlsSelect.addEventListener('change', () => {
+    applyControlLayout();
 });
 
 difficultySelect.addEventListener('change', updateSpeedByDifficulty);
 
-// AJUSTE DE VELOCIDADES DE CAÍDA NORMALIZADAS Y ÁGILES
 function updateSpeedByDifficulty() {
     const diff = difficultySelect.value;
-    let baseSpeed = 7.5; // Normalización más rápida
+    let baseSpeed = 7.5;
     if (diff === 'easy') baseSpeed = 6.0;
     else if (diff === 'normal') baseSpeed = 7.5;
     else if (diff === 'hard') baseSpeed = 9.2;
@@ -188,7 +327,12 @@ function updateSpeedByDifficulty() {
 }
 
 videoEl.volume = volumeSlider.value;
-volumeSlider.addEventListener('input', (e) => videoEl.volume = e.target.value);
+volumeSlider.addEventListener('input', (e) => {
+    videoEl.volume = e.target.value;
+    if (isYouTubeMode && ytPlayer && typeof ytPlayer.setVolume === 'function') {
+        ytPlayer.setVolume(e.target.value * 100);
+    }
+});
 hitsoundVolumeSlider.addEventListener('input', (e) => hitsoundVolume = parseFloat(e.target.value));
 opacitySlider.addEventListener('input', (e) => overlayEl.style.opacity = e.target.value);
 
@@ -204,8 +348,8 @@ function handleFileSelect(file) {
     currentFile = file;
     resetGameState();
     isYouTubeMode = false;
-    ytFrame.style.display = 'none';
-    ytFrame.src = '';
+    const ytIframe = document.getElementById('youtube-player');
+    if (ytIframe) ytIframe.style.display = 'none';
 
     const url = URL.createObjectURL(file);
     trackNameDisplay.textContent = file.name;
@@ -242,13 +386,18 @@ loadUrlBtn.addEventListener('click', () => {
         videoEl.src = "";
         videoEl.style.display = 'none';
 
-        ytFrame.src = `https://www.youtube.com/embed/${ytId}?enablejsapi=1&autoplay=0`;
-        ytFrame.style.display = 'block';
+        const ytIframe = document.getElementById('youtube-player');
+        if (ytIframe) ytIframe.style.display = 'block';
+
+        if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+            ytPlayer.loadVideoById(ytId);
+            ytPlayer.pauseVideo();
+        }
         trackNameDisplay.textContent = "YouTube Video (" + ytId + ")";
     } else {
         isYouTubeMode = false;
-        ytFrame.style.display = 'none';
-        ytFrame.src = '';
+        const ytIframe = document.getElementById('youtube-player');
+        if (ytIframe) ytIframe.style.display = 'none';
 
         trackNameDisplay.textContent = "Pista Externa";
         videoEl.crossOrigin = "anonymous";
@@ -280,15 +429,19 @@ confirmDensityBtn.addEventListener('click', async () => {
     startCountdown();
 });
 
-// ANÁLISIS DE AUDIO Y DISTRIBUCIÓN INTELIGENTE DE NOTAS LARGAS
 async function analyzeAudioBeats() {
     analyzingDisplay.classList.remove('hidden');
 
     beatmap = [];
     beatIndex = 0;
 
+    let songDuration = 180;
+    if (isYouTubeMode && ytPlayer && typeof ytPlayer.getDuration === 'function') {
+        songDuration = ytPlayer.getDuration() || 180;
+    }
+
     if (isYouTubeMode || !currentFile) {
-        generateMeasureBeatmap(128, 180);
+        generateMeasureBeatmap(128, songDuration);
         await new Promise(r => setTimeout(r, 800));
         analyzingDisplay.classList.add('hidden');
         return;
@@ -303,7 +456,7 @@ async function analyzeAudioBeats() {
         const sampleRate = audioBuffer.sampleRate;
         const bufferSize = 512;
         const totalSamples = channelData.length;
-        const songDuration = audioBuffer.duration;
+        songDuration = audioBuffer.duration;
 
         let energyHistory = [];
         let sustainedSustainMap = [];
@@ -320,7 +473,6 @@ async function analyzeAudioBeats() {
                 let diff = currentFrame[j] - previousFrame[j];
                 if (diff > 0) diffSum += diff;
 
-                // Frecuencias medias-altas para detectar melodías/voces
                 if (j > bufferSize / 8) {
                     midHighEnergy += currentFrame[j];
                 }
@@ -339,17 +491,17 @@ async function analyzeAudioBeats() {
         const isExtremeMode = (diffSetting === 'hard' || diffSetting === 'insane' || diffSetting === 'god');
 
         let minDeltaTime = 0.28;
-        if (selectedDensity === 'low') minDeltaTime = 0.42;
+        if (selectedDensity === 'low') minDeltaTime = 0.45;
         else if (selectedDensity === 'medium') minDeltaTime = 0.28;
-        else if (selectedDensity === 'high' || selectedDensity === 'high') minDeltaTime = 0.18;
+        else if (selectedDensity === 'high') minDeltaTime = 0.18;
 
         if (!isExtremeMode) {
-            minDeltaTime = Math.max(minDeltaTime, 0.24);
+            minDeltaTime = Math.max(minDeltaTime, 0.22);
         } else {
             minDeltaTime = Math.min(minDeltaTime, 0.14);
         }
 
-        let peakThreshold = avgEnergy * 1.25;
+        let peakThreshold = avgEnergy * 1.05;
         let lastTime = 0;
 
         for (let k = 0; k < energyHistory.length; k++) {
@@ -357,19 +509,20 @@ async function analyzeAudioBeats() {
             let melodyVal = sustainedSustainMap[k];
             let time = timestamps[k];
 
-            if (energy > peakThreshold && (time - lastTime > minDeltaTime)) {
-                // Detección cuidadosa de Notas Largas solo si hay notas sostenidas vocales/melódicas
+            if (time >= songDuration - 0.2) break;
+
+            if ((energy > peakThreshold || melodyVal > avgMelody) && (time - lastTime > minDeltaTime)) {
                 let isLongNote = false;
                 let noteLength = 0;
 
-                if (melodyVal > avgMelody * 1.6 && (time - lastTime > 0.45) && (k % 7 === 0)) {
+                if (melodyVal > avgMelody * 1.5 && (time - lastTime > 0.40) && (k % 6 === 0)) {
                     isLongNote = true;
-                    noteLength = 90 + Math.random() * 80; // Altura de la nota sostenida
+                    noteLength = 90 + Math.random() * 80;
                 }
 
                 beatmap.push({
                     time: time,
-                    isStrong: energy > (avgEnergy * 1.9),
+                    isStrong: energy > (avgEnergy * 1.75),
                     isLongNote: isLongNote,
                     noteLength: noteLength
                 });
@@ -395,7 +548,7 @@ function generateMeasureBeatmap(bpm, duration) {
     else if (selectedDensity === 'high') measureInterval *= 0.6;
 
     beatmap = [];
-    for (let t = 0.4; t < duration; t += measureInterval) {
+    for (let t = 0.4; t < duration - 0.3; t += measureInterval) {
         beatmap.push({
             time: t,
             isStrong: (Math.floor(t / measureInterval) % 4 === 0),
@@ -415,7 +568,13 @@ replayBtn.addEventListener('click', () => {
 
 function pauseGame() {
     if (!isPlaying) return;
-    if (!isYouTubeMode) videoEl.pause();
+
+    if (isYouTubeMode && ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+        ytPlayer.pauseVideo();
+    } else {
+        videoEl.pause();
+    }
+
     isPlaying = false;
     pauseModal.classList.remove('hidden');
     startBtn.disabled = false;
@@ -430,25 +589,38 @@ function resumeGame() {
 function restartGame() {
     pauseModal.classList.add('hidden');
     resetGameState();
-    if (!isYouTubeMode) videoEl.currentTime = 0;
+    if (isYouTubeMode && ytPlayer && typeof ytPlayer.seekTo === 'function') {
+        ytPlayer.seekTo(0);
+    } else {
+        videoEl.currentTime = 0;
+    }
     startCountdown();
 }
 
 function resetGameState() {
     isPlaying = false;
     isCountingDown = false;
-    if (!isYouTubeMode) videoEl.pause();
+
+    if (isYouTubeMode && ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+        ytPlayer.pauseVideo();
+    } else {
+        videoEl.pause();
+    }
 
     notes.forEach(note => note.element.remove());
     notes = [];
     beatIndex = 0;
 
-    score = 0;
-    combo = 0;
-    multiplier = 1;
-    scoreDisplay.textContent = '000000';
-    comboDisplay.textContent = '0';
-    multiplierDisplay.textContent = 'x1';
+    scoreP1 = 0; comboP1 = 0; multiplierP1 = 1;
+    scoreP2 = 0; comboP2 = 0; multiplierP2 = 1;
+
+    scoreDisplayP1.textContent = '000000';
+    comboDisplayP1.textContent = '0';
+    multiplierDisplayP1.textContent = 'x1';
+
+    scoreDisplayP2.textContent = '000000';
+    comboDisplayP2.textContent = '0';
+    multiplierDisplayP2.textContent = 'x1';
 
     startBtn.disabled = false;
     pauseBtn.disabled = true;
@@ -479,8 +651,8 @@ function startCountdown() {
 
 async function startGameplay() {
     try {
-        if (isYouTubeMode) {
-            ytFrame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        if (isYouTubeMode && ytPlayer && typeof ytPlayer.playVideo === 'function') {
+            ytPlayer.playVideo();
         } else {
             videoEl.muted = false;
             await videoEl.play();
@@ -497,10 +669,17 @@ async function startGameplay() {
     }
 }
 
+function getCurrentTrackTime() {
+    if (isYouTubeMode && ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+        return ytPlayer.getCurrentTime();
+    }
+    return videoEl.currentTime || (performance.now() - songStartTime) / 1000;
+}
+
 function processBeatmap() {
     if (!isPlaying) return;
 
-    const currentTime = !isYouTubeMode ? videoEl.currentTime : (performance.now() - songStartTime) / 1000;
+    const currentTime = getCurrentTrackTime();
     const advanceTime = 1.2;
 
     while (beatIndex < beatmap.length && beatmap[beatIndex].time <= currentTime + advanceTime) {
@@ -510,23 +689,41 @@ function processBeatmap() {
     }
 }
 
+// GENERACIÓN INTELIGENTE: NOTAS DOBLES EN BEATS FUERTES SOLO EN DIFICULTAD DIFÍCIL EN ADELANTE
 function generateNotesFromBeat(beat) {
     const diff = difficultySelect.value;
     let count = 1;
 
-    if (beat.isStrong && (diff === 'insane' || diff === 'god' || selectedDensity === 'high')) {
+    // Fácil y Normal -> 1 nota a la vez
+    // Hard, Insane, God -> 2 notas simultáneas en beats fuertes
+    const allowDoubleNotes = (diff === 'hard' || diff === 'insane' || diff === 'god');
+
+    if (allowDoubleNotes && beat.isStrong) {
         count = 2;
+    } else {
+        count = 1;
     }
 
-    const availableTracks = [0, 1, 2, 3];
+    // P1
+    const availableTracksP1 = [0, 1, 2, 3];
     for (let i = 0; i < count; i++) {
-        const randomIndex = Math.floor(Math.random() * availableTracks.length);
-        const trackIndex = availableTracks.splice(randomIndex, 1)[0];
-        createNote(trackIndex, beat.isLongNote, beat.noteLength);
+        const randomIndex = Math.floor(Math.random() * availableTracksP1.length);
+        const trackIndex = availableTracksP1.splice(randomIndex, 1)[0];
+        createNote(trackIndex, beat.isLongNote, beat.noteLength, 1);
+    }
+
+    // P2 (Multijugador)
+    if (isMultiplayer) {
+        const availableTracksP2 = [4, 5, 6, 7];
+        for (let i = 0; i < count; i++) {
+            const randomIndex = Math.floor(Math.random() * availableTracksP2.length);
+            const trackIndex = availableTracksP2.splice(randomIndex, 1)[0];
+            createNote(trackIndex, beat.isLongNote, beat.noteLength, 2);
+        }
     }
 }
 
-function createNote(trackIndex, isLongNote = false, noteLength = 0) {
+function createNote(trackIndex, isLongNote = false, noteLength = 0, player = 1) {
     const noteEl = document.createElement('div');
     let className = `note track-${trackIndex}`;
     if (isLongNote) className += ' sustain-note';
@@ -543,6 +740,7 @@ function createNote(trackIndex, isLongNote = false, noteLength = 0) {
     notes.push({
         element: noteEl,
         track: trackIndex,
+        player: player,
         y: 0,
         height: isLongNote ? (26 + noteLength) : 26,
         isLong: isLongNote,
@@ -571,10 +769,9 @@ function updateNotes() {
             note.y += noteSpeed;
             note.element.style.top = note.y + 'px';
         } else {
-            // Si la nota larga está manteniéndose presionada, se va reduciendo
             note.height -= noteSpeed * 0.85;
             note.element.style.height = Math.max(26, note.height) + 'px';
-            addScore(5); // Puntos continuos al mantener
+            addScore(5, note.player);
 
             if (note.height <= 26 || !activeKeys[note.track]) {
                 showFeedback('PERFECT!', 'perfect');
@@ -587,7 +784,7 @@ function updateNotes() {
 
         if (note.y > hitZoneY + 55 && !note.hit && !note.holding) {
             showFeedback('MISS', 'miss');
-            resetCombo();
+            resetCombo(note.player);
             note.element.remove();
             notes.splice(i, 1);
         }
@@ -596,7 +793,7 @@ function updateNotes() {
 
 function spawnParticles(trackIndex) {
     const trackEl = tracks[trackIndex];
-    const colors = ['#ff2a75', '#00f0ff', '#9d4edd', '#ffb703'];
+    const colors = ['#ff2a75', '#00f0ff', '#9d4edd', '#ffb703', '#ff2a75', '#00f0ff', '#9d4edd', '#ffb703'];
     const particleColor = colors[trackIndex];
 
     for (let i = 0; i < 8; i++) {
@@ -621,7 +818,6 @@ function spawnParticles(trackIndex) {
     }
 }
 
-// EVENTOS DE TECLADO (KEYDOWN / KEYUP PARA NOTAS LARGAS)
 window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
 
@@ -630,20 +826,43 @@ window.addEventListener('keydown', (e) => {
         else if (!pauseModal.classList.contains('hidden')) resumeGame();
     }
 
-    if (currentScheme.keys.hasOwnProperty(key)) {
-        const trackIdx = currentScheme.keys[key];
-        if (!activeKeys[trackIdx]) {
-            activeKeys[trackIdx] = true;
-            triggerHit(trackIdx);
+    if (isMultiplayer) {
+        if (p1MultiKeys.hasOwnProperty(key)) {
+            const trackIdx = p1MultiKeys[key];
+            if (!activeKeys[trackIdx]) {
+                activeKeys[trackIdx] = true;
+                triggerHit(trackIdx);
+            }
+        } else if (p2MultiKeys.hasOwnProperty(key)) {
+            const trackIdx = p2MultiKeys[key];
+            if (!activeKeys[trackIdx]) {
+                activeKeys[trackIdx] = true;
+                triggerHit(trackIdx);
+            }
+        }
+    } else {
+        if (currentScheme.keys.hasOwnProperty(key)) {
+            const trackIdx = currentScheme.keys[key];
+            if (!activeKeys[trackIdx]) {
+                activeKeys[trackIdx] = true;
+                triggerHit(trackIdx);
+            }
         }
     }
 });
 
 window.addEventListener('keyup', (e) => {
     const key = e.key.toLowerCase();
-    if (currentScheme.keys.hasOwnProperty(key)) {
-        const trackIdx = currentScheme.keys[key];
-        activeKeys[trackIdx] = false;
+    if (isMultiplayer) {
+        if (p1MultiKeys.hasOwnProperty(key)) {
+            activeKeys[p1MultiKeys[key]] = false;
+        } else if (p2MultiKeys.hasOwnProperty(key)) {
+            activeKeys[p2MultiKeys[key]] = false;
+        }
+    } else {
+        if (currentScheme.keys.hasOwnProperty(key)) {
+            activeKeys[currentScheme.keys[key]] = false;
+        }
     }
 });
 
@@ -673,7 +892,6 @@ function triggerHit(trackIndex) {
         const note = notes[noteIndex];
         const distance = Math.abs(note.y - hitZoneY);
 
-        // Efecto de Brillo Fluorescente (Flash) al acertar
         note.element.classList.add('hit-flash');
 
         if (note.isLong) {
@@ -682,10 +900,10 @@ function triggerHit(trackIndex) {
             spawnParticles(trackIndex);
         } else {
             if (distance < 22) {
-                addScore(300);
+                addScore(300, note.player);
                 showFeedback('PERFECT!', 'perfect');
             } else {
-                addScore(100);
+                addScore(100, note.player);
                 showFeedback('GREAT', 'great');
             }
 
@@ -702,23 +920,34 @@ function triggerHit(trackIndex) {
     }
 }
 
-function addScore(basePoints) {
-    combo++;
-    if (combo % 10 === 0 && multiplier < 4) {
-        multiplier++;
+function addScore(basePoints, player = 1) {
+    if (player === 1) {
+        comboP1++;
+        if (comboP1 % 10 === 0 && multiplierP1 < 4) multiplierP1++;
+        scoreP1 += basePoints * multiplierP1;
+        scoreDisplayP1.textContent = scoreP1.toString().padStart(6, '0');
+        comboDisplayP1.textContent = comboP1;
+        multiplierDisplayP1.textContent = `x${multiplierP1}`;
+    } else {
+        comboP2++;
+        if (comboP2 % 10 === 0 && multiplierP2 < 4) multiplierP2++;
+        scoreP2 += basePoints * multiplierP2;
+        scoreDisplayP2.textContent = scoreP2.toString().padStart(6, '0');
+        comboDisplayP2.textContent = comboP2;
+        multiplierDisplayP2.textContent = `x${multiplierP2}`;
     }
-    score += basePoints * multiplier;
-
-    scoreDisplay.textContent = score.toString().padStart(6, '0');
-    comboDisplay.textContent = combo;
-    multiplierDisplay.textContent = `x${multiplier}`;
 }
 
-function resetCombo() {
-    combo = 0;
-    multiplier = 1;
-    comboDisplay.textContent = combo;
-    multiplierDisplay.textContent = `x${multiplier}`;
+function resetCombo(player = 1) {
+    if (player === 1) {
+        comboP1 = 0; multiplierP1 = 1;
+        comboDisplayP1.textContent = comboP1;
+        multiplierDisplayP1.textContent = `x${multiplierP1}`;
+    } else {
+        comboP2 = 0; multiplierP2 = 1;
+        comboDisplayP2.textContent = comboP2;
+        multiplierDisplayP2.textContent = `x${multiplierP2}`;
+    }
 }
 
 function showFeedback(text, type) {

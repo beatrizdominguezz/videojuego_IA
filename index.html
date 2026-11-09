@@ -13,7 +13,7 @@
     <!-- Contenedor audiovisual -->
     <div id="video-container">
         <video id="bg-video" playsinline crossorigin="anonymous"></video>
-        <iframe id="youtube-frame" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div id="youtube-player"></div>
         <div id="video-overlay"></div>
     </div>
 
@@ -39,10 +39,28 @@
             </div>
         </header>
 
+        <!-- Modal Inicial: Selección de Modo de Juego -->
+        <div id="mode-select-modal" class="pause-modal">
+            <h2>🎮 SELECCIONA EL MODO DE JUEGO</h2>
+            <p class="modal-subtitle">Elige cómo deseas jugar antes de comenzar</p>
+            <div class="density-options">
+                <button class="density-btn active" id="btn-mode-single">
+                    <span>👤 MODO INDIVIDUAL</span>
+                    <small>Un solo jugador en pantalla principal (Controles personalizables).</small>
+                </button>
+                <button class="density-btn" id="btn-mode-multi">
+                    <span>👥 MODO MULTIJUGADOR</span>
+                    <small>Dos jugadores en pantalla dividida (P1: WASD | P2: Flechas).</small>
+                </button>
+            </div>
+            <button id="confirm-mode-btn" class="action-btn">CONTINUAR ➔</button>
+        </div>
+
         <!-- Zona Principal del Juego -->
-        <main class="game-area">
-            <!-- Panel Izquierdo: Puntuación -->
+        <main class="game-area hidden" id="game-main-area">
+            <!-- Panel Izquierdo: Puntuación Jugador 1 -->
             <aside class="side-panel left">
+                <h3 class="player-title" id="p1-title">JUGADOR 1</h3>
                 <div class="score-card">
                     <span class="label">PUNTOS</span>
                     <span id="score-display">000000</span>
@@ -58,11 +76,11 @@
             </aside>
 
             <!-- Pistas de Juego -->
-            <div class="highway-container">
+            <div class="highway-container" id="main-highway-container">
                 <!-- Indicador de Análisis -->
                 <div id="analyzing-display" class="analyzing-display hidden">
                     <div class="spinner"></div>
-                    <p>DETECCION DE VOCES, MELODÍAS Y BEATS...</p>
+                    <p>ANÁLISIS INTUITIVO DE VOCES, INSTRUMENTOS Y BEATS...</p>
                 </div>
 
                 <div id="countdown-display" class="countdown-display"></div>
@@ -96,21 +114,21 @@
                     <h2>⚙️ CONFIGURACIÓN</h2>
                     <div class="settings-grid">
                         <div class="setting-group-modal">
-                            <label for="controls-select">Controles de Juego:</label>
+                            <label for="controls-select" id="controls-label">Controles P1:</label>
                             <select id="controls-select">
-                                <option value="arrows" selected>Flechas (← ↑ ↓ →)</option>
-                                <option value="wasd">WASD (A W S D)</option>
+                                <option value="wasd" selected>WASD (A W S D)</option>
+                                <option value="arrows">Flechas (← ↑ ↓ →)</option>
                             </select>
                         </div>
 
                         <div class="setting-group-modal">
                             <label for="difficulty-select">Dificultad:</label>
                             <select id="difficulty-select">
-                                <option value="easy">Fácil (Velocidad Cómoda)</option>
-                                <option value="normal" selected>Normal (Velocidad Estándar)</option>
-                                <option value="hard">Difícil (Más Rápido)</option>
-                                <option value="insane">🔥 Insano (Velocidad Alta)</option>
-                                <option value="god">⚡ Dios (Velocidad Extrema)</option>
+                                <option value="easy">Fácil (1 Nota a la vez)</option>
+                                <option value="normal" selected>Normal (Notas Dobles solo en Beats Fuertes)</option>
+                                <option value="hard">Difícil (Sensibilidad y Rango Alto)</option>
+                                <option value="insane">🔥 Insano (Ritmo Intenso)</option>
+                                <option value="god">⚡ Dios (Reflejos Extremos)</option>
                             </select>
                         </div>
 
@@ -142,6 +160,7 @@
                             📂 CAMBIAR ARCHIVO
                             <input type="file" id="audio-file-input-modal" accept="audio/*,video/*">
                         </label>
+                        <button id="change-mode-btn" class="action-btn secondary">🎮 CAMBIAR MODO DE JUEGO</button>
                     </div>
                 </div>
 
@@ -149,8 +168,12 @@
                 <div id="game-over-modal" class="pause-modal hidden">
                     <h2 class="title-finish">¡JUEGO TERMINADO!</h2>
                     <div class="final-score-box">
-                        <span class="label">PUNTAJE FINAL</span>
+                        <span class="label" id="final-score-p1-label">PUNTAJE FINAL</span>
                         <h3 id="final-score-display">000000</h3>
+                        <div id="final-score-p2-box" class="hidden" style="margin-top: 10px;">
+                            <span class="label">PUNTAJE FINAL (P2)</span>
+                            <h3 id="final-score-p2-display" style="color: var(--accent-blue);">000000</h3>
+                        </div>
                     </div>
                     <div class="modal-buttons">
                         <button id="replay-btn" class="action-btn">🔄 VOLVER A JUGAR</button>
@@ -161,28 +184,67 @@
                     </div>
                 </div>
 
-                <div class="highway">
+                <!-- Pistas Jugador 1 -->
+                <div class="highway" id="highway-p1">
                     <div class="track" data-track="0">
                         <div class="track-line"></div>
-                        <div class="hit-zone" id="key-0"><span class="key-bind">←</span></div>
+                        <div class="hit-zone" id="key-0"><span class="key-bind">A</span></div>
                     </div>
                     <div class="track" data-track="1">
                         <div class="track-line"></div>
-                        <div class="hit-zone" id="key-1"><span class="key-bind">↑</span></div>
+                        <div class="hit-zone" id="key-1"><span class="key-bind">W</span></div>
                     </div>
                     <div class="track" data-track="2">
                         <div class="track-line"></div>
-                        <div class="hit-zone" id="key-2"><span class="key-bind">↓</span></div>
+                        <div class="hit-zone" id="key-2"><span class="key-bind">S</span></div>
                     </div>
                     <div class="track" data-track="3">
                         <div class="track-line"></div>
-                        <div class="hit-zone" id="key-3"><span class="key-bind">→</span></div>
+                        <div class="hit-zone" id="key-3"><span class="key-bind">D</span></div>
                     </div>
                 </div>
+
+                <!-- Pistas Jugador 2 (Sólo en Multijugador) -->
+                <div class="highway hidden" id="highway-p2">
+                    <div class="track" data-track="4">
+                        <div class="track-line"></div>
+                        <div class="hit-zone" id="key-4"><span class="key-bind">←</span></div>
+                    </div>
+                    <div class="track" data-track="5">
+                        <div class="track-line"></div>
+                        <div class="hit-zone" id="key-5"><span class="key-bind">↑</span></div>
+                    </div>
+                    <div class="track" data-track="6">
+                        <div class="track-line"></div>
+                        <div class="hit-zone" id="key-6"><span class="key-bind">↓</span></div>
+                    </div>
+                    <div class="track" data-track="7">
+                        <div class="track-line"></div>
+                        <div class="hit-zone" id="key-7"><span class="key-bind">→</span></div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Panel Derecho -->
-            <aside class="side-panel right">
+            <aside class="side-panel right" id="right-side-panel">
+                <div id="p2-score-panel" class="hidden">
+                    <h3 class="player-title" style="color: var(--accent-blue);">JUGADOR 2</h3>
+                    <div class="score-card">
+                        <span class="label">PUNTOS</span>
+                        <span id="score-display-p2">000000</span>
+                    </div>
+                    <div class="score-card">
+                        <span class="label">MULTIPLICADOR</span>
+                        <span id="multiplier-display-p2">x1</span>
+                    </div>
+                    <div class="score-card">
+                        <span class="label">COMBO</span>
+                        <span id="combo-display-p2">0</span>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
+                </div>
+
                 <div class="track-info">
                     <span class="label">PISTA AUDIOVISUAL</span>
                     <p id="track-name">Ningún archivo subido</p>
@@ -193,13 +255,15 @@
 
                 <div class="instructions">
                     <h3>Controles</h3>
-                    <p id="controls-text">Usa las teclas <strong>←, ↑, ↓, →</strong> o toca las casillas inferiores en
+                    <p id="controls-text">Usa las teclas <strong>A, W, S, D</strong> o toca las casillas inferiores en
                         pantalla.</p>
                 </div>
             </aside>
         </main>
     </div>
 
+    <!-- API de Iframe de YouTube para control preciso de fin de reproducción -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script src="static/js/script.js"></script>
 </body>
 

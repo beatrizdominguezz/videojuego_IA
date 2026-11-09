@@ -37,7 +37,7 @@ body {
 }
 
 #bg-video,
-#youtube-frame {
+#youtube-player {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -48,7 +48,7 @@ body {
     will-change: transform;
 }
 
-#youtube-frame {
+#youtube-player {
     display: none;
     pointer-events: none;
 }
@@ -245,6 +245,10 @@ body {
     justify-content: space-between;
 }
 
+.game-area.hidden {
+    display: none !important;
+}
+
 .side-panel {
     width: 220px;
     background: var(--panel-bg);
@@ -254,8 +258,19 @@ body {
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.player-title {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    color: var(--accent-pink);
+    text-align: center;
+}
+
+.player-title.hidden {
+    display: none !important;
 }
 
 .score-card {
@@ -263,29 +278,31 @@ body {
     flex-direction: column;
     align-items: center;
     background: rgba(0, 0, 0, 0.4);
-    padding: 12px;
+    padding: 10px;
     border-radius: 8px;
     border-left: 3px solid var(--accent-blue);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .score-card .label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #aaa;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .score-card span:last-child {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: bold;
     color: #fff;
 }
 
 .highway-container {
     flex: 1;
-    max-width: 450px;
+    max-width: 900px;
     position: relative;
     margin: 0 auto;
+    display: flex;
+    gap: 15px;
 }
 
 .analyzing-display {
@@ -379,7 +396,7 @@ body {
 }
 
 .final-score-box h3 {
-    font-size: 2.2rem;
+    font-size: 2rem;
     color: var(--accent-yellow);
     text-shadow: 0 0 10px var(--accent-yellow);
 }
@@ -447,14 +464,26 @@ body {
 
 .highway {
     display: flex;
+    flex: 1;
     height: 100%;
-    width: 100%;
     background: rgba(12, 14, 25, 0.78);
     border-left: 3px solid var(--accent-blue);
     border-right: 3px solid var(--accent-blue);
     box-shadow: 0 0 30px rgba(0, 240, 255, 0.25);
     position: relative;
     overflow: hidden;
+}
+
+.highway.hidden {
+    display: none !important;
+}
+
+#p2-score-panel.hidden {
+    display: none !important;
+}
+
+#final-score-p2-box.hidden {
+    display: none !important;
 }
 
 .track {
@@ -482,22 +511,26 @@ body {
     transition: background 0.1s, transform 0.05s, box-shadow 0.1s;
 }
 
-.track[data-track="0"] .hit-zone {
+.track[data-track="0"] .hit-zone,
+.track[data-track="4"] .hit-zone {
     border-color: var(--accent-pink);
     box-shadow: inset 0 0 10px rgba(255, 42, 117, 0.3);
 }
 
-.track[data-track="1"] .hit-zone {
+.track[data-track="1"] .hit-zone,
+.track[data-track="5"] .hit-zone {
     border-color: var(--accent-blue);
     box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.3);
 }
 
-.track[data-track="2"] .hit-zone {
+.track[data-track="2"] .hit-zone,
+.track[data-track="6"] .hit-zone {
     border-color: var(--accent-purple);
     box-shadow: inset 0 0 10px rgba(157, 78, 221, 0.3);
 }
 
-.track[data-track="3"] .hit-zone {
+.track[data-track="3"] .hit-zone,
+.track[data-track="7"] .hit-zone {
     border-color: var(--accent-yellow);
     box-shadow: inset 0 0 10px rgba(255, 183, 3, 0.3);
 }
@@ -507,19 +540,23 @@ body {
     transform: scale(0.93);
 }
 
-.hit-zone.hit-glow-0 {
+.hit-zone.hit-glow-0,
+.hit-zone.hit-glow-4 {
     box-shadow: 0 0 25px var(--accent-pink), inset 0 0 15px var(--accent-pink);
 }
 
-.hit-zone.hit-glow-1 {
+.hit-zone.hit-glow-1,
+.hit-zone.hit-glow-5 {
     box-shadow: 0 0 25px var(--accent-blue), inset 0 0 15px var(--accent-blue);
 }
 
-.hit-zone.hit-glow-2 {
+.hit-zone.hit-glow-2,
+.hit-zone.hit-glow-6 {
     box-shadow: 0 0 25px var(--accent-purple), inset 0 0 15px var(--accent-purple);
 }
 
-.hit-glow-3 {
+.hit-glow-3,
+.hit-glow-7 {
     box-shadow: 0 0 25px var(--accent-yellow), inset 0 0 15px var(--accent-yellow);
 }
 
@@ -528,7 +565,6 @@ body {
     font-weight: bold;
 }
 
-/* --- ESTILOS DE NOTAS NORMALES Y NOTAS LARGAS --- */
 .note {
     position: absolute;
     width: 86%;
@@ -541,37 +577,39 @@ body {
     transition: filter 0.1s ease, box-shadow 0.1s ease;
 }
 
-/* Efecto de Brillo al acertar la nota */
 .note.hit-flash {
     filter: brightness(2.2) contrast(1.3);
     box-shadow: 0 0 30px #ffffff, 0 0 50px currentColor !important;
 }
 
-.note.track-0 {
+.note.track-0,
+.note.track-4 {
     background: linear-gradient(180deg, #ff65a3, var(--accent-pink));
     box-shadow: 0 0 16px var(--accent-pink);
     color: var(--accent-pink);
 }
 
-.note.track-1 {
+.note.track-1,
+.note.track-5 {
     background: linear-gradient(180deg, #70f6ff, var(--accent-blue));
     box-shadow: 0 0 16px var(--accent-blue);
     color: var(--accent-blue);
 }
 
-.note.track-2 {
+.note.track-2,
+.note.track-6 {
     background: linear-gradient(180deg, #c77dff, var(--accent-purple));
     box-shadow: 0 0 16px var(--accent-purple);
     color: var(--accent-purple);
 }
 
-.note.track-3 {
+.note.track-3,
+.note.track-7 {
     background: linear-gradient(180deg, #ffe17d, var(--accent-yellow));
     box-shadow: 0 0 16px var(--accent-yellow);
     color: var(--accent-yellow);
 }
 
-/* Nota Larga (Cuerpo y Cola) */
 .note.sustain-note {
     border-radius: 10px;
 }
